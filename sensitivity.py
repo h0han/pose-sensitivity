@@ -10,6 +10,13 @@ pose = mp_pose.Pose()
 # 비디오 캡처 객체를 생성
 cap = cv2.VideoCapture("OMG_sml.mp4")
 
+# 비디오 코덱 설정
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+
+# 저장할 비디오 파일 이름 설정
+out = cv2.VideoWriter('output.mp4', fourcc, 30.0, (int(cap.get(3)), int(cap.get(4))))
+
+
 # FPS 계산을 위한 변수를 초기화
 fps_start_time = time.time()
 fps_frames = 0
@@ -99,6 +106,9 @@ while True:
 
     # 오른쪽 손목 관절 민감도를 화면 상단 좌측에 표시함
     cv2.putText(image, "Right Wrist Sensitivity: {} mv/sec".format(wrist_movement_count), (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+
+    # 영상 저장하기
+    out.write(image)
 
     # 출력 이미지를 화면에 표시함
     cv2.imshow("Output", image)
