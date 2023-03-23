@@ -20,7 +20,7 @@ with open('right_wrist_coordinates.csv', 'r') as f:
     reader = csv.reader(f)
     next(reader)  # 첫 번째 줄을 생략
     for row in reader:
-        points.append((float(row[1]*100), float(row[2]*100)))
+        points.append((float(row[1]) * 1000, float(row[2]) * 1000))
 
 # 연속적인 점으로 움직임을 표현할 평면 생성
 plane = np.zeros((720, 1280, 3), np.uint8)
@@ -61,7 +61,7 @@ while index < len(points):
         fps_start_time = time.time()
 
     # FPS를 화면에 표시
-    cv2.putText(plane, "FPS: {:.2f}".format(fps), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+    # cv2.putText(plane, "FPS: {:.2f}".format(fps), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
     # 이미지를 출력
     cv2.imshow("Output", plane)

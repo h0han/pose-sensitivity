@@ -6,14 +6,21 @@ import time
 mp_pose = mp.solutions.pose
 pose = mp_pose.Pose()
 
-# 비디오 캡처 객체를 생성
-cap = cv2.VideoCapture("hypeboy.mp4")
+# 이전 프레임에 대한 잔상효과 생성 함수
+def create_residual(frame, prev_frame):
+    # 프레임 간 차이를 계산합니다.
+    diff = cv2.absdiff(frame, prev_frame)
+    # 차이 영상을 0~255로 스케일링합니다.
+    diff = cv2.normalize(diff,None,0,255,cv2.NORM_MINMAX)
+    # 이전 프레임에 대한 잔상 효과 생성
+    residual = cv2.addWeighted(frame, 0.5, diff, 0.5, 0)
+    return residual
 
-# 비디오 코덱 설정
-fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+# 잔상 효과를 생성할 동영상 파일 경로
+video_path = "OMG_sml.mp4"
 
-# 저장할 비디오 파일 이름 설정
-out = cv2.VideoWriter('output_4.mp4', fourcc, 30.0, (int(cap.get(3)), int(cap.get(4))))
+# 동영상 파일 열기
+cap = cv2.VideoCapture(video_path)
 
 # FPS 계산을 위한 변수를 초기화
 fps_start_time = time.time()
@@ -30,16 +37,19 @@ l_points = []
 r_colors = []
 l_colors = []
 
+
+# 첫 번째 프레임 읽기
+ret, prev_frame = cap.read()
+
+# 무한 루프
 while True:
-    
-    # 비디오 프레임을 읽어옴
-    success, image = cap.read()
-
-    if not success:
+    # 다음 프레임 읽기
+    ret, frame = cap.read()
+    if not ret:
         break
-
+    
     # 입력 이미지에서 포즈를 추정함
-    results = pose.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    results = pose.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
     # 포즈 결과를 이용하여 오른쪽 손목 관절 위치를 가져옴
     if results.pose_landmarks:
@@ -60,8 +70,8 @@ while True:
 
             if r_distance_moved > 0.001 or l_distance_moved > 0.001:
                 # 좌표와 색상값을 리스트에 추가함
-                r_points.append((int(right_wrist.x * image.shape[1]), int(right_wrist.y * image.shape[0])))
-                l_points.append((int(left_wrist.x * image.shape[1]), int(left_wrist.y * image.shape[0])))
+                r_points.append((int(right_wrist.x * frame.shape[1]), int(right_wrist.y * frame.shape[0])))
+                l_points.append((int(left_wrist.x * frame.shape[1]), int(left_wrist.y * frame.shape[0])))
                 
                 r_colors.append((255, 0, 0))
                 l_colors.append((0, 255, 255))
@@ -80,10 +90,10 @@ while True:
 
         # 이전 좌표들을 이용하여 연속적인 점을 그림
         for i, point in enumerate(r_points):
-            cv2.circle(image, point, 5, r_colors[i], -1)
+            cv2.circle(frame, point, 5, r_colors[i], -1)
 
         for i, point in enumerate(l_points):
-            cv2.circle(image, point, 5, l_colors[i], -1)
+            cv2.circle(frame, point, 5, l_colors[i], -1)
             
 
     # FPS를 계산하고 화면 상단 좌측에 표시함
@@ -92,18 +102,20 @@ while True:
         fps = fps_frames / (time.time() - fps_start_time)
         fps_frames = 0
         fps_start_time = time.time()
-    cv2.putText(image, "FPS: {:.2f}".format(fps), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+    cv2.putText(frame, "FPS: {:.2f}".format(fps), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
 
-    # 영상 저장하기
-    out.write(image)
 
-    # 화면에 표시함
-    cv2.imshow("Output", image)
-
-    # ESC 키를 누르면 프로그램을 종료함
-    if cv2.waitKey(1) == 27:
+    # 잔상 효과 생성
+    residual = create_residual(frame, prev_frame)
+    
+    # 잔상 효과 출력
+    cv2.imshow("Residual", residual)
+    if cv2.waitKey(1) == ord("q"):
         break
+    
+    # 이전 프레임 업데이트
+    prev_frame = frame
 
+# 종료
 cap.release()
 cv2.destroyAllWindows()
-
